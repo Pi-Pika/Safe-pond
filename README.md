@@ -1,8 +1,14 @@
-# 🌊 SafePond AI - Water Quality Monitoring Dashboard
+# 🌊 SafePond AI
 
-A beautiful real-time water quality monitoring dashboard connected to Firebase Realtime Database.
+### *Intelligent Water Quality Monitoring System*
 
-https://safe-pond.vercel.app/
+[![Live Demo](https://img.shields.io/badge/Live_Dashboard-Click_Here-2ea44f?style=for-the-badge&logo=vercel)](https://safe-pond.vercel.app/) [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/) [![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)](https://safe-pond.vercel.app/)
+
+> **A beautiful, real-time dashboard that transforms raw sensor data into actionable water quality insights.**
+
+SafePond AI connects your ESP32 hardware to a stunning, ocean-themed web interface via Firebase. It doesn't just display numbers; it calculates the Water Quality Index (WQI) and provides AI-powered suggestions to keep your water ecosystem healthy.
+
+---
 
 ## 📋 Features
 
