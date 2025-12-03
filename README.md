@@ -2,6 +2,8 @@
 
 A beautiful real-time water quality monitoring dashboard connected to Firebase Realtime Database.
 
+https://safe-pond.vercel.app/
+
 ## 📋 Features
 
 - **Real-time Monitoring**: Live sensor data updates from your ESP32 device
