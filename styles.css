@@ -710,3 +710,30 @@ svg {
     --wqi-color-2: #ffaa00;
     --wqi-color-3: #00ff00;
 }
+.wqi-status-box {
+    margin-top: 20px;
+    padding: 25px;
+    text-align: center;
+    font-size: 32px;
+    font-weight: bold;
+    border-radius: 15px;
+    color: white;
+    transition: 0.4s ease-in-out;
+}
+
+/* Color Styles */
+.wqi-poor {
+    background-color: #b30000; /* red */
+}
+
+.wqi-fair {
+    background-color: #d68a00; /* orange */
+}
+
+.wqi-good {
+    background-color: #008a17; /* green */
+}
+
+.wqi-excellent {
+    background-color: #005bbb; /* blue */
+}

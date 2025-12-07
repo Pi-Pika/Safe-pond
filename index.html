@@ -154,6 +154,10 @@
                     </div>
                 </div>
             </div>
+            <div class="wqi-status-box" id="wqiStatusBox">
+                <h2 id="wqiStatusText">Water Quality Status</h2>
+            </div>
+
 
             <!-- Suggestion Card -->
             <div class="suggestion-card">
@@ -170,7 +174,7 @@
         <footer class="footer">
             <p>Last Updated: <span id="lastUpdate">--:--:--</span></p>
             <p>Device ID: ESP32_WATER_01</p>
-            <p>&copy; SafePond_Ai | Developed by Kazi Abir Hasan</p>
+            <p>&copy; SafePond_Ai | Developed by Mahmudul Hasan Piash & Faharia  Akter</p>
         </footer>
     </div>
 
@@ -410,6 +414,30 @@
 
             return Math.max(0, Math.min(100, tdsScore * 0.3 + turbidityScore * 0.3 + phScore * 0.2 + tempScore * 0.2));
         }
+        // Update large WQI box
+            const statusBox = document.getElementById('wqiStatusBox');
+            const statusText = document.getElementById('wqiStatusText');
+
+            // Remove old classes
+            statusBox.classList.remove('wqi-poor', 'wqi-fair', 'wqi-good', 'wqi-excellent');
+
+            if (sensorData.wqi <= 40) {
+                statusText.textContent = 'Water Quality: POOR';
+                statusBox.classList.add('wqi-poor');
+            }
+            else if (sensorData.wqi <= 60) {
+                statusText.textContent = 'Water Quality: FAIR';
+                statusBox.classList.add('wqi-fair');
+            }
+            else if (sensorData.wqi <= 80) {
+                statusText.textContent = 'Water Quality: GOOD';
+                statusBox.classList.add('wqi-good');
+            }
+            else {
+                statusText.textContent = 'Water Quality: EXCELLENT';
+                statusBox.classList.add('wqi-excellent');
+            }
+
 
         // ====== Suggestions ====== //
         
