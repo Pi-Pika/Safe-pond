@@ -11,19 +11,13 @@
     const sensorData = {
         water_level: 0,
         tds: 0,
-        turbidity: 0,   // 0–100, 0 = best
+        turbidity: 0,   // 0–100 scale
         temperature: 0,
         ph: 0,
         wqi: 0
     };
 
     let firebaseAvailable = false;
-
-    // ====== Helpers ====== //
-    function hideSpinner() {
-        const spinner = document.getElementById('loadingSpinner');
-        if (spinner) spinner.style.display = 'none';
-    }
 
     // ====== Initialize ====== //
     document.addEventListener('DOMContentLoaded', function() {
@@ -88,7 +82,7 @@
                     // Initialize with default data
                     sensorData.water_level = 50;
                     sensorData.tds = 200;
-                    sensorData.turbidity = 20;  // good clarity
+                    sensorData.turbidity = 20;  // good (0–100 scale)
                     sensorData.temperature = 25.5;
                     sensorData.ph = 7.2;
                     updateAllDisplays();
@@ -105,7 +99,7 @@
         sensorData.water_level += (Math.random() - 0.5) * 3;
         sensorData.tds += (Math.random() - 0.5) * 8;
 
-        // Turbidity now in 0–100 scale
+        // TURBIDITY: 0–100 scale
         sensorData.turbidity += (Math.random() - 0.5) * 5;
 
         sensorData.temperature += (Math.random() - 0.5) * 0.15;
@@ -114,10 +108,7 @@
         // Constrain values
         sensorData.water_level = Math.max(20, Math.min(85, sensorData.water_level));
         sensorData.tds = Math.max(150, Math.min(500, sensorData.tds));
-
-        // 0 = best clarity, 100 = worst
-        sensorData.turbidity = Math.max(0, Math.min(100, sensorData.turbidity));
-
+        sensorData.turbidity = Math.max(0, Math.min(100, sensorData.turbidity)); // 0–100
         sensorData.temperature = Math.max(15, Math.min(35, sensorData.temperature));
         sensorData.ph = Math.max(6.0, Math.min(8.5, sensorData.ph));
 
@@ -133,7 +124,6 @@
         updatePH();
         updateWQI();
         generateSuggestions();
-        hideSpinner(); // UI is ready, hide overlay
     }
 
     // ====== Water Level ====== //
@@ -161,14 +151,14 @@
         if (progress) progress.style.width = percentage + '%';
     }
 
-    // ====== Turbidity (0–100, 0 best) ====== //
+    // ====== Turbidity (0–100) ====== //
     function updateTurbidity() {
-        const value = sensorData.turbidity;      // 0–100
-        const percentage = Math.min(value, 100); // direct mapping
+        const value = sensorData.turbidity;          // 0–100
+        const percentage = Math.min(value, 100);     // direct mapping
 
         const element = document.getElementById('turbidityValue');
         if (element) element.textContent = Math.round(value);
-
+        
         const progress = document.getElementById('turbidityProgress');
         if (progress) progress.style.width = percentage + '%';
     }
@@ -222,20 +212,21 @@
         if (fill) fill.style.strokeDashoffset = offset;
     }
 
-    // ====== Calculate WQI ====== //
+    // ====== Calculate WQI (with turbidity 0–100) ====== //
     function calculateWQI(data) {
+        // TDS: same assumption as before
         const tdsScore = Math.max(0, 100 - (data.tds ?? 0) / 10);
 
-        // turbidity: 0 = best, 100 = worst
-        const turbidity = data.turbidity ?? 0;
-        const turbidityScore = Math.max(0, 100 - turbidity);
+        // Turbidity: 0 (best) → 100 (worst)
+        const turbidityValue = data.turbidity ?? 0;
+        const turbidityScore = Math.max(0, 100 - turbidityValue);
 
         const ph = data.ph ?? 7;
         let phScore = 100;
         if (ph < 6.5 || ph > 8.5) {
             phScore = Math.max(0, 100 - Math.abs(ph - 7) * 10);
         }
-
+        
         const temp = data.temperature ?? 25;
         let tempScore = 100;
         if (temp < 10 || temp > 35) {
@@ -268,16 +259,16 @@
         else if (sensorData.tds > 300) suggestions.push('🟡 TDS is moderately high.');
         else suggestions.push('✅ TDS is healthy.');
 
-        // Turbidity (0 = optimal, 1–25 good, 26–50 fair, 51–100 poor)
-        const turb = sensorData.turbidity;
-        if (turb === 0) {
+        // Turbidity (0–100 scale, category mapping)
+        const turbidity = sensorData.turbidity;
+        if (turbidity === 0) {
             suggestions.push('✅ Water clarity is optimal (turbidity 0).');
-        } else if (turb <= 25) {
+        } else if (turbidity <= 25) {
             suggestions.push('✅ Water clarity is good (turbidity 1–25).');
-        } else if (turb <= 50) {
+        } else if (turbidity <= 50) {
             suggestions.push('🟡 Turbidity is fair (26–50).');
         } else {
-            suggestions.push('🔴 High turbidity, water is poor (51–100).');
+            suggestions.push('🔴 High turbidity (51–100, poor).');
         }
 
         // pH
