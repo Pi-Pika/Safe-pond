@@ -414,7 +414,12 @@
 
             return Math.max(0, Math.min(100, tdsScore * 0.3 + turbidityScore * 0.3 + phScore * 0.2 + tempScore * 0.2));
         }
-        // Update large WQI box
+
+        // ====== Suggestions ====== //
+        
+        function generateSuggestions() {
+            let suggestions = [];
+            // Update large WQI box
             const statusBox = document.getElementById('wqiStatusBox');
             const statusText = document.getElementById('wqiStatusText');
 
@@ -438,11 +443,6 @@
                 statusBox.classList.add('wqi-excellent');
             }
 
-
-        // ====== Suggestions ====== //
-        
-        function generateSuggestions() {
-            let suggestions = [];
 
             // Water level
             if (sensorData.water_level < 30) suggestions.push('⚠️ Water level is low.');
