@@ -395,43 +395,284 @@
         }
 
         // ====== Calculate WQI ====== //
-        function calculateWQI(data) {
-            const tdsScore = Math.max(0, 100 - (data.tds ?? 0) / 10);
-            function getTurbidityScore(turbidity) {
-            if (turbidity === 0) {
-                return 100;
-            } else if (turbidity >= 1 && turbidity <= 25) {
-                // 1–25 → 99–55 (reverse of 1–55)
-                return Math.round(100 - ((turbidity / 25) * 45));
-            } else if (turbidity >= 26 && turbidity <= 51) {
-                // 26–51 → 54–20 (reverse of 56–80)
-                return Math.round(80 - ((turbidity - 26) / 25) * 34);
-            } else if (turbidity >= 52 && turbidity <= 100) {
-                // 52–100 → 19–0 (reverse of 80–100)
-                return Math.round(20 - ((turbidity - 52) / 48) * 20);
+        // function calculateWQI(data) {
+        //     const tdsScore = Math.max(0, 100 - (data.tds ?? 0) / 10);
+        //     function getTurbidityScore(turbidity) {
+        //     if (turbidity === 0) {
+        //         return 100;
+        //     } else if (turbidity >= 1 && turbidity <= 25) {
+        //         // 1–25 → 99–55 (reverse of 1–55)
+        //         return Math.round(100 - ((turbidity / 25) * 45));
+        //     } else if (turbidity >= 26 && turbidity <= 51) {
+        //         // 26–51 → 54–20 (reverse of 56–80)
+        //         return Math.round(80 - ((turbidity - 26) / 25) * 34);
+        //     } else if (turbidity >= 52 && turbidity <= 100) {
+        //         // 52–100 → 19–0 (reverse of 80–100)
+        //         return Math.round(20 - ((turbidity - 52) / 48) * 20);
+        //     } else {
+        //         return 0; // fallback
+        //     }
+        //     }
+
+        //     // usage
+        //     const turbidityScore = getTurbidityScore(data.turbidity);
+
+
+            
+        //     const ph = data.ph ?? 7;
+        //     let phScore = 100;
+        //     if (ph < 6.5 || ph > 8.5) {
+        //         phScore = Math.max(0, 100 - Math.abs(ph - 7) * 10);
+        //     }
+            
+        //     const temp = data.temperature ?? 25;
+        //     let tempScore = 100;
+        //     if (temp < 10 || temp > 35) {
+        //         tempScore = Math.max(0, 100 - Math.abs(temp - 25) / 0.5);
+        //     }
+
+        //     return Math.max(0, Math.min(100, tdsScore * 0.3 + turbidityScore * 0.3 + phScore * 0.3 + tempScore * 0.1));
+        // }
+            function calculateWQI(data) {
+            // Input validation with defaults
+            const ph = data.ph ?? 7.0;
+            const tds = data.tds ?? data.tds_ppm ?? 250;
+            const temperature = data.temperature ?? data.temperature_c ?? 22;
+            const turbidity = data.turbidity ?? data.turbidity_NTU ?? 25;
+            const waterLevel = data.waterLevel ?? data.water_level_percentage ?? 90;
+
+            // ========================================================================
+            // 1. TURBIDITY SCORE (0-100) - Weight: 35%
+            // Range: 0-51 NTU (0-100 scale, inverse relationship)
+            // ========================================================================
+            function getTurbidityScore(ntu) {
+                if (ntu <= 0.5) {
+                    return 100; // Excellent clarity
+                } else if (ntu >= 0.5 && ntu <= 25) {
+                    // 0.5-25 NTU → 100-60 (linear decline)
+                    // Excellent to Good range
+                    return Math.max(60, Math.round(100 - ((ntu - 0.5) / 24.5) * 40));
+                } else if (ntu > 25 && ntu <= 50) {
+                    // 25-50 NTU → 60-20 (linear decline)
+                    // Fair to Poor range
+                    return Math.max(20, Math.round(60 - ((ntu - 25) / 25) * 40));
+                } else {
+                    // > 50 NTU: Very turbid
+                    return 0;
+                }
+            }
+
+            const turbidityScore = getTurbidityScore(turbidity);
+
+            // ========================================================================
+            // 2. TDS (Total Dissolved Solids) SCORE (0-100) - Weight: 30%
+            // Range: 10-600 ppm
+            // Optimal: 50-250 ppm
+            // ========================================================================
+            function getTDSScore(tdsValue) {
+                // Optimal range for drinking water: 50-150 ppm
+                if (tdsValue <= 50) {
+                    return 90; // Very pure (nearly distilled)
+                } else if (tdsValue <= 150) {
+                    return 100; // Excellent (optimal range)
+                } else if (tdsValue <= 300) {
+                    // 150-300: Good range
+                    return Math.round(100 - ((tdsValue - 150) / 150) * 20);
+                } else if (tdsValue <= 450) {
+                    // 300-450: Fair range
+                    return Math.round(80 - ((tdsValue - 300) / 150) * 35);
+                } else if (tdsValue < 600) {
+                    // 450-600: Poor range
+                    return Math.round(45 - ((tdsValue - 450) / 150) * 40);
+                } else {
+                    return 5; // Extremely high salinity
+                }
+            }
+
+            const tdsScore = getTDSScore(tds);
+
+            // ========================================================================
+            // 3. pH SCORE (0-100) - Weight: 20%
+            // Optimal pH: 6.5-8.5 (neutral to slightly basic)
+            // ========================================================================
+            function getPhScore(phValue) {
+                // Optimal range: 6.5-8.5
+                if (phValue >= 6.5 && phValue <= 8.5) {
+                    return 100; // Perfect pH range
+                } else if (phValue >= 6.0 && phValue < 6.5) {
+                    // Slightly acidic but acceptable
+                    return Math.round(100 - (6.5 - phValue) * 20);
+                } else if (phValue > 8.5 && phValue <= 9.0) {
+                    // Slightly basic but acceptable
+                    return Math.round(100 - (phValue - 8.5) * 20);
+                } else if (phValue >= 5.5 && phValue < 6.0) {
+                    // Acidic
+                    return Math.round(60 - (6.0 - phValue) * 40);
+                } else if (phValue > 9.0 && phValue <= 9.5) {
+                    // Basic
+                    return Math.round(60 - (phValue - 9.0) * 40);
+                } else {
+                    // Extreme pH (< 5.5 or > 9.5)
+                    return Math.max(0, 20 - Math.abs(phValue - 7) * 5);
+                }
+            }
+
+            const phScore = getPhScore(ph);
+
+            // ========================================================================
+            // 4. TEMPERATURE SCORE (0-100) - Weight: 15%
+            // Optimal temperature: 15-25°C
+            // ========================================================================
+            function getTemperatureScore(temp) {
+                // Optimal range: 15-25°C for most aquatic life
+                if (temp >= 15 && temp <= 25) {
+                    return 100; // Perfect temperature range
+                } else if (temp >= 10 && temp < 15) {
+                    // Cool but acceptable
+                    return Math.round(100 - (15 - temp) * 10);
+                } else if (temp > 25 && temp <= 30) {
+                    // Warm but acceptable
+                    return Math.round(100 - (temp - 25) * 12);
+                } else if (temp >= 5 && temp < 10) {
+                    // Cold
+                    return Math.round(60 - (10 - temp) * 15);
+                } else if (temp > 30 && temp <= 35) {
+                    // Very warm
+                    return Math.round(60 - (temp - 30) * 12);
+                } else {
+                    // Extreme temperature
+                    return Math.max(0, 20 - Math.abs(temp - 22) * 2);
+                }
+            }
+
+            const temperatureScore = getTemperatureScore(temperature);
+
+            // ========================================================================
+            // 5. FINAL WQI CALCULATION
+            // Weighted formula based on parameter importance
+            // ========================================================================
+            const wqi = Math.max(
+                0,
+                Math.min(
+                    100,
+                    turbidityScore * 0.35 +    // 35% weight
+                    tdsScore * 0.30 +           // 30% weight
+                    phScore * 0.20 +            // 20% weight
+                    temperatureScore * 0.15     // 15% weight
+                )
+            );
+
+            // Round to 2 decimal places
+            return Math.round(wqi * 100) / 100;
+        }
+
+        /**
+         * HELPER FUNCTION: Get WQI Classification
+         * Returns the water quality class based on calculated WQI value
+         */
+        function getWQIClass(wqi) {
+            if (wqi >= 85) {
+                return 'Excellent';
+            } else if (wqi >= 70) {
+                return 'Good';
+            } else if (wqi >= 50) {
+                return 'Fair';
             } else {
-                return 0; // fallback
+                return 'Poor';
             }
+        }
+
+        /**
+         * HELPER FUNCTION: Get WQI Details with explanation
+         * Returns detailed breakdown of WQI calculation
+         */
+        function getWQIDetails(data) {
+            const ph = data.ph ?? 7.0;
+            const tds = data.tds ?? data.tds_ppm ?? 250;
+            const temperature = data.temperature ?? data.temperature_c ?? 22;
+            const turbidity = data.turbidity ?? data.turbidity_NTU ?? 25;
+
+            // Calculate individual scores (using the functions from calculateWQI)
+            function getTurbidityScore(ntu) {
+                if (ntu <= 0.5) return 100;
+                else if (ntu >= 0.5 && ntu <= 25) {
+                    return Math.max(60, Math.round(100 - ((ntu - 0.5) / 24.5) * 40));
+                } else if (ntu > 25 && ntu <= 50) {
+                    return Math.max(20, Math.round(60 - ((ntu - 25) / 25) * 40));
+                } else return 0;
             }
 
-            // usage
-            const turbidityScore = getTurbidityScore(data.turbidity);
-
-
-            
-            const ph = data.ph ?? 7;
-            let phScore = 100;
-            if (ph < 6.5 || ph > 8.5) {
-                phScore = Math.max(0, 100 - Math.abs(ph - 7) * 10);
-            }
-            
-            const temp = data.temperature ?? 25;
-            let tempScore = 100;
-            if (temp < 10 || temp > 35) {
-                tempScore = Math.max(0, 100 - Math.abs(temp - 25) / 0.5);
+            function getTDSScore(tdsValue) {
+                if (tdsValue <= 50) return 90;
+                else if (tdsValue <= 150) return 100;
+                else if (tdsValue <= 300) {
+                    return Math.round(100 - ((tdsValue - 150) / 150) * 20);
+                } else if (tdsValue <= 450) {
+                    return Math.round(80 - ((tdsValue - 300) / 150) * 35);
+                } else if (tdsValue < 600) {
+                    return Math.round(45 - ((tdsValue - 450) / 150) * 40);
+                } else return 5;
             }
 
-            return Math.max(0, Math.min(100, tdsScore * 0.3 + turbidityScore * 0.3 + phScore * 0.3 + tempScore * 0.1));
+            function getPhScore(phValue) {
+                if (phValue >= 6.5 && phValue <= 8.5) return 100;
+                else if (phValue >= 6.0 && phValue < 6.5) {
+                    return Math.round(100 - (6.5 - phValue) * 20);
+                } else if (phValue > 8.5 && phValue <= 9.0) {
+                    return Math.round(100 - (phValue - 8.5) * 20);
+                } else if (phValue >= 5.5 && phValue < 6.0) {
+                    return Math.round(60 - (6.0 - phValue) * 40);
+                } else if (phValue > 9.0 && phValue <= 9.5) {
+                    return Math.round(60 - (phValue - 9.0) * 40);
+                } else {
+                    return Math.max(0, 20 - Math.abs(phValue - 7) * 5);
+                }
+            }
+
+            function getTemperatureScore(temp) {
+                if (temp >= 15 && temp <= 25) return 100;
+                else if (temp >= 10 && temp < 15) {
+                    return Math.round(100 - (15 - temp) * 10);
+                } else if (temp > 25 && temp <= 30) {
+                    return Math.round(100 - (temp - 25) * 12);
+                } else if (temp >= 5 && temp < 10) {
+                    return Math.round(60 - (10 - temp) * 15);
+                } else if (temp > 30 && temp <= 35) {
+                    return Math.round(60 - (temp - 30) * 12);
+                } else {
+                    return Math.max(0, 20 - Math.abs(temp - 22) * 2);
+                }
+            }
+
+            const turbidityScore = getTurbidityScore(turbidity);
+            const tdsScore = getTDSScore(tds);
+            const phScore = getPhScore(ph);
+            const temperatureScore = getTemperatureScore(temperature);
+
+            const wqi = Math.max(
+                0,
+                Math.min(
+                    100,
+                    turbidityScore * 0.35 + tdsScore * 0.30 + phScore * 0.20 + temperatureScore * 0.15
+                )
+            );
+
+            return {
+                wqi: Math.round(wqi * 100) / 100,
+                wqiClass: getWQIClass(Math.round(wqi * 100) / 100),
+                scores: {
+                    turbidity: turbidityScore,
+                    tds: tdsScore,
+                    ph: phScore,
+                    temperature: temperatureScore
+                },
+                weights: {
+                    turbidity: '35%',
+                    tds: '30%',
+                    ph: '20%',
+                    temperature: '15%'
+                }
+            };
         }
 
         // ====== Suggestions ====== //
