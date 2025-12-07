@@ -279,14 +279,20 @@
         function simulateData() {
             sensorData.water_level += (Math.random() - 0.5) * 3;
             sensorData.tds += (Math.random() - 0.5) * 8;
+
+            // Turbidity now in 0–100 scale
             sensorData.turbidity += (Math.random() - 0.5) * 5;
+
             sensorData.temperature += (Math.random() - 0.5) * 0.15;
             sensorData.ph += (Math.random() - 0.5) * 0.08;
 
             // Constrain values
             sensorData.water_level = Math.max(20, Math.min(85, sensorData.water_level));
             sensorData.tds = Math.max(150, Math.min(500, sensorData.tds));
-            sensorData.turbidity = Math.max(80, Math.min(300, sensorData.turbidity));
+
+            // 0 = best clarity, 100 = worst
+            sensorData.turbidity = Math.max(0, Math.min(100, sensorData.turbidity));
+
             sensorData.temperature = Math.max(15, Math.min(35, sensorData.temperature));
             sensorData.ph = Math.max(6.0, Math.min(8.5, sensorData.ph));
 
@@ -300,43 +306,20 @@
             updateTurbidity();
             updateTemperature();
             updatePH();
+
+            // WQI will internally use turbidity (0–100) where 0 is best
             updateWQI();
             generateSuggestions();
         }
 
-        // ====== Water Level ====== //
-        function updateWaterLevel() {
-            const value = sensorData.water_level;
-            const circumference = 2 * Math.PI * 90;
-            const offset = circumference * (1 - value / 100);
-
-            const element = document.getElementById('waterLevelText');
-            if (element) element.textContent = `${Math.round(value)}%`;
-            
-            const gauge = document.getElementById('waterLevelGauge');
-            if (gauge) gauge.style.strokeDashoffset = offset;
-        }
-
-        // ====== TDS ====== //
-        function updateTDS() {
-            const value = sensorData.tds;
-            const percentage = Math.min((value / 1000) * 100, 100);
-
-            const element = document.getElementById('tdsValue');
-            if (element) element.textContent = Math.round(value);
-            
-            const progress = document.getElementById('tdsProgress');
-            if (progress) progress.style.width = percentage + '%';
-        }
-
-        // ====== Turbidity ====== //
+        // ====== Turbidity (0–100, 0 best) ====== //
         function updateTurbidity() {
-            const value = sensorData.turbidity;
-            const percentage = Math.min((value / 3000) * 100, 100);
+            const value = sensorData.turbidity;      // 0–100
+            const percentage = Math.min(value, 100); // direct mapping to progress bar
 
             const element = document.getElementById('turbidityValue');
             if (element) element.textContent = Math.round(value);
-            
+
             const progress = document.getElementById('turbidityProgress');
             if (progress) progress.style.width = percentage + '%';
         }
@@ -392,35 +375,30 @@
 
         // ====== Calculate WQI ====== //
         function calculateWQI(data) {
-            // TDS Score (unchanged)
             const tdsScore = Math.max(0, 100 - (data.tds ?? 0) / 10);
 
-            // TURBIDITY SCORE (0–100 scale)
-            // Lower turbidity = better score
+            // turbidity: 0 = best, 100 = worst
             const turbidity = data.turbidity ?? 0;
             const turbidityScore = Math.max(0, 100 - turbidity);
 
-            // pH Score
             const ph = data.ph ?? 7;
             let phScore = 100;
             if (ph < 6.5 || ph > 8.5) {
                 phScore = Math.max(0, 100 - Math.abs(ph - 7) * 10);
             }
 
-            // Temperature Score
             const temp = data.temperature ?? 25;
             let tempScore = 100;
             if (temp < 10 || temp > 35) {
                 tempScore = Math.max(0, 100 - Math.abs(temp - 25) / 0.5);
             }
 
-            // FINAL WQI (weighted)
             return Math.max(
                 0,
                 Math.min(
                     100,
                     tdsScore * 0.3 +
-                    turbidityScore * 0.3 +   // updated weight
+                    turbidityScore * 0.3 +
                     phScore * 0.2 +
                     tempScore * 0.2
                 )
@@ -440,8 +418,9 @@
             else if (sensorData.tds > 300) suggestions.push('🟡 TDS is moderately high.');
             else suggestions.push('✅ TDS is healthy.');
 
-            if (sensorData.turbidity > 1000) suggestions.push('🔴 High turbidity.');
-            else if (sensorData.turbidity > 500) suggestions.push('🟡 Turbidity is elevated.');
+            if (sensorData.turbidity > 50) suggestions.push('🔴 High turbidity.');
+            else if (sensorData.turbidity > 26) suggestions.push('🟡 Turbidity is elevated.');
+            else if (sensorData.turbidity > 1) suggestions.push('🟡 Turbidity moderate.');
             else suggestions.push('✅ Water clarity is good.');
 
             const ph = sensorData.ph;
