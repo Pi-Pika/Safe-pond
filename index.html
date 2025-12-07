@@ -332,7 +332,7 @@
         // ====== Turbidity ====== //
         function updateTurbidity() {
             const value = sensorData.turbidity;
-            const percentage = Math.min((value / 3000) * 100, 100);
+            const percentage = Math.min((value / 100) * 100, 100);
 
             const element = document.getElementById('turbidityValue');
             if (element) element.textContent = Math.round(value);
@@ -422,8 +422,9 @@
             else if (sensorData.tds > 300) suggestions.push('🟡 TDS is moderately high.');
             else suggestions.push('✅ TDS is healthy.');
 
-            if (sensorData.turbidity > 1000) suggestions.push('🔴 High turbidity.');
-            else if (sensorData.turbidity > 500) suggestions.push('🟡 Turbidity is elevated.');
+            if (sensorData.turbidity > 50) suggestions.push('🔴 High turbidity.');
+            else if (sensorData.turbidity > 26) suggestions.push('🟡 Turbidity is elevated.');
+            else if (sensorData.turbidity > 1) suggestions.push('🟡 Turbidity is acceptable.');
             else suggestions.push('✅ Water clarity is good.');
 
             const ph = sensorData.ph;
