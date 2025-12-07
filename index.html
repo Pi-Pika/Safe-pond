@@ -412,62 +412,56 @@
         }
 
         // ====== Suggestions ====== //
+        
         function generateSuggestions() {
             let suggestions = [];
 
+            // Water level
             if (sensorData.water_level < 30) suggestions.push('⚠️ Water level is low.');
             else if (sensorData.water_level > 80) suggestions.push('⚠️ Water level is high.');
             else suggestions.push('✅ Water level is optimal.');
 
+            // TDS
             if (sensorData.tds > 500) suggestions.push('🔴 High TDS.');
             else if (sensorData.tds > 300) suggestions.push('🟡 TDS is moderately high.');
             else suggestions.push('✅ TDS is healthy.');
 
+            // Turbidity
             if (sensorData.turbidity > 50) suggestions.push('🔴 High turbidity.');
             else if (sensorData.turbidity > 26) suggestions.push('🟡 Turbidity is elevated.');
             else if (sensorData.turbidity > 1) suggestions.push('🟡 Turbidity is acceptable.');
-            else suggestions.push('✅ Water clarity is good.');
+            else suggestions.push('✅ Water clarity is excellent.');
 
+            // pH
             const ph = sensorData.ph;
             if (ph < 6.5 || ph > 8.5) suggestions.push(`⚠️ pH (${ph.toFixed(1)}) out of range.`);
             else suggestions.push(`✅ pH (${ph.toFixed(1)}) is optimal.`);
 
+            // Temperature
             if (sensorData.temperature < 15) suggestions.push('❄️ Temperature is cold.');
             else if (sensorData.temperature > 32) suggestions.push('🔥 Temperature is high.');
             else suggestions.push('✅ Temperature is ideal.');
 
+            // ====== WQI CLASSIFICATION ====== //
             sensorData.wqi = calculateWQI(sensorData);
-            if (sensorData.wqi > 80) suggestions.push('⭐ Excellent quality!');
-            else if (sensorData.wqi > 60) suggestions.push('👍 Good quality.');
-            else if (sensorData.wqi > 40) suggestions.push('⚠️ Fair quality.');
-            else suggestions.push('🔴 Poor quality.');
+
+            if (sensorData.wqi <= 40) {
+                suggestions.push('🔴 Water Quality: Poor (0–40).');
+            }
+            else if (sensorData.wqi <= 60) {
+                suggestions.push('⚠️ Water Quality: Fair (41–60).');
+            }
+            else if (sensorData.wqi <= 80) {
+                suggestions.push('👍 Water Quality: Good (61–80).');
+            }
+            else {
+                suggestions.push('⭐ Water Quality: Excellent (81–100).');
+            }
 
             const element = document.getElementById('suggestionText');
             if (element) element.textContent = suggestions.join(' | ');
         }
 
-        // ====== Status ====== //
-        function setConnectionStatus(connected, text) {
-            const dot = document.getElementById('connectionStatus');
-            const status = document.getElementById('statusText');
-            if (connected) {
-                if (dot) dot.classList.add('connected');
-                if (status) status.textContent = text;
-            }
-        }
-
-        function updateFirebaseStatus(connected, text) {
-            const status = document.getElementById('firebaseStatus');
-            const statusText = document.getElementById('firebaseStatusText');
-            if (status) {
-                if (connected) {
-                    status.classList.add('connected');
-                } else {
-                    status.classList.remove('connected');
-                }
-            }
-            if (statusText) statusText.textContent = text;
-        }
 
         // ====== Clock ====== //
         function updateClock() {
