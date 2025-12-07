@@ -19,6 +19,12 @@
 
     let firebaseAvailable = false;
 
+    // ====== Helpers ====== //
+    function hideSpinner() {
+        const spinner = document.getElementById('loadingSpinner');
+        if (spinner) spinner.style.display = 'none';
+    }
+
     // ====== Initialize ====== //
     document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Dashboard loaded');
@@ -127,6 +133,7 @@
         updatePH();
         updateWQI();
         generateSuggestions();
+        hideSpinner(); // UI is ready, hide overlay
     }
 
     // ====== Water Level ====== //
