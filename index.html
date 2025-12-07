@@ -393,7 +393,8 @@
         // ====== Calculate WQI ====== //
         function calculateWQI(data) {
             const tdsScore = Math.max(0, 100 - (data.tds ?? 0) / 10);
-            const turbidityScore = Math.max(0, 100 - (data.turbidity ?? 0) / 30);
+            const turbidityScore = Math.max(0, 100 - data.turbidity);
+
             
             const ph = data.ph ?? 7;
             let phScore = 100;
