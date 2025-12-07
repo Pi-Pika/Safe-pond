@@ -397,7 +397,25 @@
         // ====== Calculate WQI ====== //
         function calculateWQI(data) {
             const tdsScore = Math.max(0, 100 - (data.tds ?? 0) / 10);
-            const turbidityScore = Math.max(0, 100 - data.turbidity);
+            function getTurbidityPenalty(turbidity) {
+                if (turbidity === 0) {
+                    return 0;
+                } else if (turbidity >= 1 && turbidity <= 25) {
+                    // scale 1–25 → 1–55
+                    return Math.round(((turbidity - 1) / 24) * 54 + 1);
+                } else if (turbidity >= 26 && turbidity <= 51) {
+                    // scale 26–51 → 56–80
+                    return Math.round(((turbidity - 26) / 25) * 24 + 56);
+                } else if (turbidity >= 52 && turbidity <= 100) {
+                    // scale 52–100 → 80–100
+                    return Math.round(((turbidity - 52) / 48) * 20 + 80);
+                } else {
+                    return 100; // safety fallback
+                }
+                }
+
+                // usage
+            const turbidityScore = getTurbidityPenalty(data.turbidity);
 
             
             const ph = data.ph ?? 7;
